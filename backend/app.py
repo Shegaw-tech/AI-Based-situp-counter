@@ -1,4 +1,5 @@
 from flask import Flask, render_template, Response, jsonify, request
+from flask import send_from_directory
 from backend.pose_analyzer import PoseAnalyzer
 from backend.health_recommender import HealthRecommender
 from backend.models import SessionData
@@ -30,7 +31,13 @@ session_lock = Lock()
 def index():
     return render_template('index.html')
 
-
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(
+        os.path.join(app.root_path, 'static'),
+        'favicon.ico',
+        mimetype='image/vnd.microsoft.icon'
+    )
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
     with session_lock:
