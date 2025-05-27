@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Sit-Up Counter</title>
+    <style>
+        /* ===== Base Styles ===== */
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --danger: #f72585;
+            --danger-dark: #e5177b;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4cc9f0;
+            --warning: #f8961e;
+            --full-color: #9C27B0;
+            --border-radius: 12px;
+            --debug-bg: rgba(0,0,0,0.85);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--dark);
+        }
+
+        /* ===== App Container ===== */
+        .app-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .app-header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .app-subtitle {
+            opacity: 0.9;
+            font-weight: 300;
+            font-size: 1.1rem;
+        }
+
+        /* ===== Video Feed ===== */
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 720px;
+            margin: 0 auto;
+            background: #000;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            aspect-ratio: 16/9;
+        }
+
+        #video, #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #buffer-canvas {
+            display: none;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 1.5rem;
+            pointer-events: none;
+        }
+
+        .rep-counter {
+            font-size: 5rem;
+            font-weight: 800;
+            color: white;
+            text-align: center;
+            text-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+            margin-top: 1rem;
+        }
+
+        .situp-type {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.5);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .situp-type.full {
+            background-color: var(--full-color);
+            border-color: #6A1B9A;
+        }
+
+        .form-feedback {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.8rem 1.2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            max-width: 80%;
+            margin: 0 auto 1rem;
+            backdrop-filter: blur(5px);
+        }
+
+        .gesture-hint {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin: 0 auto;
+            backdrop-filter: blur(5px);
+        }
+
+        /* ===== Buttons ===== */
+        .control-panel {
+            display: flex;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: var(--light);
+            border-bottom: 1px solid #e0e0e0;
+            justify-content: center;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: var(--danger-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-icon {
+            font-size: 1.2rem;
+        }
+
+        /* ===== Cards ===== */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .info-card h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-card h3::before {
+            content: "•";
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .instruction-list, .recommendation-list {
+            padding-left: 5px;
+            list-style-type: none;
+        }
+
+        .instruction-list li, .recommendation-list li {
+            margin-bottom: 12px;
+            padding-left: 25px;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .instruction-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .recommendation-list li::before {
+            content: "★";
+            position: absolute;
+            left: 0;
+            color: var(--warning);
+        }
+
+        /* ===== Animations ===== */
+        .rep-pulse {
+            animation: repPulse 0.5s;
+        }
+
+        @keyframes repPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); color: var(--success); }
+            100% { transform: scale(1); }
+        }
+
+        /* ===== Debug Console ===== */
+        #debug-console {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: var(--debug-bg);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 300px;
+            font-family: monospace;
+            font-size: 14px;
+            z-index: 1000;
+            max-height: 60vh;
+            overflow-y: auto;
+            display: none;
+        }
+
+        #debug-console h3 {
+            margin-top: 0;
+            color: var(--success);
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+        }
+
+        #debug-console p {
+            margin: 5px 0;
+            line-height: 1.4;
+        }
+
+        #debug-console .event {
+            color: var(--warning);
+            font-weight: bold;
+        }
+
+        #debug-console .error {
+            color: var(--danger);
+        }
+
+        #debug-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1001;
+            padding: 8px 12px;
+            background: var(--debug-bg);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .debug-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 4px;
+        }
+
+        .debug-metric {
+            font-family: monospace;
+            margin: 4px 0;
+            padding: 2px 0;
+        }
+
+        /* ===== Notifications ===== */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .notification.info {
+            background-color: var(--primary);
+        }
+
+        .notification.warning {
+            background-color: var(--warning);
+            color: var(--dark);
+        }
+
+        .notification.error {
+            background-color: var(--danger);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* ===== Loading State ===== */
+        .btn-primary[disabled] {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* ===== Responsive Design ===== */
+        @media (max-width: 768px) {
+            .app-header h1 {
+                font-size: 1.8rem;
+                flex-direction: column;
+            }
+
+            .rep-counter {
+                font-size: 3.5rem;
+            }
+
+            .control-panel {
+                flex-direction: column;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            #debug-console {
+                max-width: 250px;
+                font-size: 12px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>AI Sit-Up Counter</h1>
+            <p class="app-subtitle">Real-time full sit-up detection with form analysis</p>
+        </header>
+
+        <div class="video-container">
+            <canvas id="canvas"></canvas>
+            <video id="video" autoplay playsinline muted style="display:none"></video>
+            <canvas id="buffer-canvas" style="display:none"></canvas>
+            <div class="video-overlay">
+                <div id="situp-type-label" class="situp-type full">FULL SIT UP</div>
+                <div class="rep-counter" id="count">0</div>
+                <div class="form-feedback" id="feedback"></div>
+                <div class="gesture-hint">Raise hands above head to reset count</div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <button id="start-btn" class="btn-primary">
+                <span class="btn-icon">▶</span> Start Session
+            </button>
+            <button id="exit-btn" class="btn-secondary">
+                <span class="btn-icon">⏹</span> End Session
+            </button>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>Workout Instructions</h3>
+                <ol class="instruction-list" id="instructions">
+                    <li>Position yourself 2-3 meters from camera</li>
+                    <li>Keep your entire body visible in frame</li>
+                    <li>Raise both hands above head to reset counter</li>
+                    <li>Perform controlled full sit-up movements</li>
+                    <li>Keep your back straight and core engaged</li>
+                </ol>
+            </div>
+
+            <div class="info-card">
+                <h3>Personalized Recommendations</h3>
+                <ul class="recommendation-list" id="recommendations">
+                    <li>Start with 3 sets of 5-10 sit-ups</li>
+                    <li>Focus on controlled movements</li>
+                    <li>Keep your core engaged throughout</li>
+                    <li>Exhale as you sit up, inhale as you lower</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug Elements -->
+    <button id="debug-toggle">Toggle Debug</button>
+    <div id="debug-console"></div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

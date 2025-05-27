@@ -1,0 +1,36 @@
+/* Add these to your CSS */
+.beginner-level .app-header {
+    background: linear-gradient(135deg, #4cc9f0 0%, #4895ef 100%);
+}
+
+.intermediate-level .app-header {
+    background: linear-gradient(135deg, #f8961e 0%, #f3722c 100%);
+}
+
+.advanced-level .app-header {
+    background: linear-gradient(135deg, #f72585 0%, #b5179e 100%);
+}
+
+.beginner-level .btn-primary {
+    background: #4895ef;
+}
+
+.intermediate-level .btn-primary {
+    background: #f3722c;
+}
+
+.advanced-level .btn-primary {
+    background: #b5179e;
+}
+
+.beginner-level .rep-counter {
+    color: #4cc9f0;
+}
+
+.intermediate-level .rep-counter {
+    color: #f8961e;
+}
+
+.advanced-level .rep-counter {
+    color: #f72585;
+}
